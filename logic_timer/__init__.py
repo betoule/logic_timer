@@ -35,7 +35,7 @@ class LogicTimer(bincoms.SerialBC):
     
     def get_data(self):
         data = []
-        print(self.start(self.duration))
+        self.start(self.duration)
         self.com.timeout = self.duration+1
         while True:
             data.append(self.async_packet_read())
@@ -54,16 +54,26 @@ def test():
         '-t', '--tty', default='/dev/ttyACM0',
         help='link to a specific tty port')
     parser.add_argument(
+        '-d', '--duration', default=20, type=float,
+        help='link to a specific tty port')
+    parser.add_argument(
         '-v', '--verbose', action='store_true',
         help='Print communication debugging info')
+    parser.add_argument(
+        '-o', '--output-file', default='timing.npy',
+        help='Filename for the record')
     
     args = parser.parse_args()
 
     d = LogicTimer(dev=args.tty, baudrate=1000000, debug=args.verbose)
-    d.set_duration(100)
+    d.set_duration(args.duration)
     import numpy as np
-    import matplotlib.pyplot as plt
-    toto = np.array(d.get_data())
-    t = toto[toto[:,1] == 1, 0]
-    plt.plot(t[1:] - t[:-1])
-    plt.show()
+    print(f'Recording lines 1r, 2r, 3f for {args.duration}s')
+    result = np.rec.fromrecords(d.get_data(), names=['time', 'pinstate'])
+    print(f'Record saved to file {args.output_file}')
+    np.save(args.output_file, result)
+    #import matplotlib.pyplot as plt
+    #toto = np.array(d.get_data())
+    #t = toto[toto[:,1] == 1, 0]
+    #plt.plot(t[1:] - t[:-1])
+    #plt.show()

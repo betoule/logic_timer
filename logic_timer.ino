@@ -61,6 +61,10 @@ void setup(){
   // PORTB setup for output on arduino pin 13
   DDRB   = 0b10000000;
   PORTB  = 0b01111111;
+  DDRD   = 0b00000000;
+  PORTD  = 0b11111111;
+  DDRE   = 0b0;
+  PORTE  = 0b11111111;
   PCMSK0 = 0b00000000;  
   // Setup external interrupt rise for arduino pin 2 and 3 (PE4 and PE5)
   EICRB |= _BV(ISC51) | _BV(ISC50) | _BV(ISC41) | _BV(ISC40);

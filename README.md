@@ -5,7 +5,7 @@ one byte flag for identification of the lines) each time a rising
 front is detected. The 32 bit timing resolution, provides more than
 2000 seconds of monitoring with 0.5μs resolution.
 
-The code is written for atmega 2560 (monitoring up to 8 lines in
+The code is written for atmega 2560 (monitoring up to 6 lines in
 parallel) and 326P (up to 2 lines) and has been tested on Arduino Mega
 2560 and Arduino Nano boards. The Arduino API being bypassed in
 several places to solve performance and timing issues, port to other
@@ -46,20 +46,44 @@ make upload
 
 ### Python API
 
+Installation of the python API using pip is obtained as:
+
+```
+pip install .
+```
 
 ## Usage
 
-Connect the TTL and ground lines to the corresponding PC interrupt
-pins and ground pins on the Arduino board. For the Arduino Mega 2560
-board the pins monitored are 
+Connect the TTL and ground lines to the corresponding external
+interrupt pins and ground pins on the Arduino board. The
+correspondence between line identifiers and board pins is given for
+the two implemented boards in the following table:
+
+| Flag   | Interrupt 2560 | Arduino Mega pin | Interrupt 326P | Arduino Nano pin |
+| 1 << 0 | INT4           | 2                | INT0           | D2               |
+| 1 << 1 | INT5           | 3                | INT1           | D3               |
+| 1 << 2 | INT3           | 18               |                |                  |
+| 1 << 3 | INT0           | 21               |                |                  |
+| 1 << 4 | INT1           | 20               |                |                  |
+| 1 << 5 | INT2           | 19               |                |                  |
+
+The following picture display a 3 lines implementation using an Arduino Mega.
+
+Assuming that the path to the serial device corresponding to the
+arduino is /dev/ttyACM0, the following command will trigger a 20 second
+record of the rising edges of pin 2 and 3 and of the falling edge
+of pin 18 and store the result to timing.npy: 
+```
+logic-timer -t /dev/ttyACM0 -d 20 -l 0,1,2 -e rrf -o timing.npy
+```
 
 ## Limitations
 
 + The code is intended to record events occurring at random times. As
   such, it generates 5 bytes of data per detected pulses (4 bytes for
   timing and 1 byte for line identification). It can only be used for
-  events with moderate average occurrence frequency and is not suited
-  to record digital communications on a regular clock.
+  timing events occurring with moderate frequency in average. It is
+  not suited to record digital communications on a regular clock.
 
 + Handling of synchronous events. The interrupt handling routine takes
   about TX μs to complete. Simultaneous events will therefore be
