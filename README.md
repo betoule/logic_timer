@@ -60,6 +60,7 @@ correspondence between line identifiers and board pins is given for
 the two implemented boards in the following table:
 
 | Flag   | Interrupt 2560 | Arduino Mega pin | Interrupt 326P | Arduino Nano pin |
+|--------|----------------|------------------|----------------|------------------|
 | 1 << 0 | INT4           | 2                | INT0           | D2               |
 | 1 << 1 | INT5           | 3                | INT1           | D3               |
 | 1 << 2 | INT3           | 18               |                |                  |
