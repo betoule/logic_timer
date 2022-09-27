@@ -58,7 +58,8 @@ void setup(){
 
 #if defined(ARDUINO_AVR_MEGA2560)
   // MEGA pin assignments
-  // PORTB setup for output on arduino pin 13
+  // PORT B D and E setup
+  // All pull-up inputs but for output on arduino pin 13
   DDRB   = 0b10000000;
   PORTB  = 0b01111111;
   DDRD   = 0b00000000;
