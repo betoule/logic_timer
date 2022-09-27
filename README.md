@@ -78,6 +78,25 @@ of pin 18 and store the result to timing.npy:
 logic-timer -t /dev/ttyACM0 -d 20 -l 0,1,2 -e rrf -o timing.npy
 ```
 
+The plot below displays the measured interval between successive
+pulses for a 1kHz square wave on line 1. The rms of the measurements
+is 0.16 μs and peak to peak deviation is 6 μs.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+record = np.load('timing.npy')
+t = record['time'][record['pinstate'] == 2]
+t = t * 0.5e-6 # Convert timing in seconds
+plt.plot(t[1:] - t[:-1], 'o')
+plt.ylabel('Measured interval [s]')
+plt.xlabel('Pulse number')
+plt.tight_layout()
+plt.savefig('doc/interval_accuracy.png')
+```
+![interval accuracy](doc/interval_accuracy.png)
+
+
 ## Limitations
 
 + The code is intended to record events occurring at random times. As
