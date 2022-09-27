@@ -45,8 +45,21 @@ class LogicTimer(bincoms.SerialBC):
         return data
         #return np.rec.fromrecords(data, names=['time', 'pinstate'])
 
-if __name__ == '__main__':
-    d = LogicTimer(dev='/dev/ttyACM0', baudrate=1000000, debug=False)
+def test():
+    ''' Monitor the TTL lines for 100s and display intervals'''
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Communicate with device implementing the generic bincoms protocol')
+    parser.add_argument(
+        '-t', '--tty', default='/dev/ttyACM0',
+        help='link to a specific tty port')
+    parser.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='Print communication debugging info')
+    
+    args = parser.parse_args()
+
+    d = LogicTimer(dev=args.tty, baudrate=1000000, debug=args.verbose)
     d.set_duration(100)
     import numpy as np
     import matplotlib.pyplot as plt
