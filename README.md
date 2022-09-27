@@ -1,26 +1,29 @@
-# TTL pulse timing for three lines in parallel over long duration
+# Arduino Mega Code to record precise TTL pulse timing for several lines in parallel over long duration
 
-The provided code monitor three TTL lines and put a 32 bit timestamp
-(+identifier of the corresponding line) each time a rising front is
-detected. The 32 bit timing resolution, provides more than 2000
-seconds of monitoring with 0.5μs resolution.
+The provided code monitors TTL lines and put a 32 bit timestamp (+ a
+one byte flag for identification of the lines) each time a rising
+front is detected. The 32 bit timing resolution, provides more than
+2000 seconds of monitoring with 0.5μs resolution.
 
-It is written for atmega 2560 and has been tested on an arduino Mega
-2560 board. The arduino API being bypassed in many places to solve
-performance issues, port to other microcontrollers may require some
-work.
+The code is written for atmega 2560 (monitoring up to 8 lines in
+parallel) and 326P (up to 2 lines) and has been tested on Arduino Mega
+2560 and Arduino Nano boards. The Arduino API being bypassed in
+several places to solve performance and timing issues, port to other
+microcontrollers may require a bit of work.
 
 ## Installation
 
 The code comes in two parts: a firmware for the MCU and a python API
-handling the custom communication with the MCU. Both live in the same directory than can be retrieve from github with:
+handling the custom communication with the MCU. Both live in the same
+directory than can be retrieve from github with:
+
 ```
 git clone https://github.com/betoule/logic_timer
 ```
 
 ### MCU code
 
-The MCU code can be compiled and uploaded using the usual arduino
+The MCU code can be compiled and uploaded using the usual Arduino
 IDE. Alternatively, we provide a makefile to compile and upload using
 the Arduino-Makefile tool:
 
@@ -28,25 +31,67 @@ https://github.com/sudar/Arduino-Makefile
 
 + Install the arduino IDE
 + Install Arduino-Makefile
-+ Adjust the following lines in the Makefile:
++ Adjust the following lines in the Makefile to match your own
+  installation:
+
 ```
 ARDUINO_DIR = /home/dice/soft/arduino-1.8.16
 include ~/soft/Arduino-Makefile/Arduino.mk
 ```
-to match your own installation.
-+ Connect the board and compile and upload the firmware with:
+
++ Connect the board, compile and upload the firmware with:
 ```
 make upload
 ```
 
 ### Python API
 
+
 ## Usage
 
 Connect the TTL and ground lines to the corresponding PC interrupt
-pins and ground pins on the arduino board. For the arduino Mega 2560
+pins and ground pins on the Arduino board. For the Arduino Mega 2560
 board the pins monitored are 
 
 ## Limitations
 
++ The code is intended to record events occurring at random times. As
+  such, it generates 5 bytes of data per detected pulses (4 bytes for
+  timing and 1 byte for line identification). It can only be used for
+  events with moderate average occurrence frequency and is not suited
+  to record digital communications on a regular clock.
 
++ Handling of synchronous events. The interrupt handling routine takes
+  about TX μs to complete. Simultaneous events will therefore be
+  reported as separated by at least TX μs and ordered by the interrupt
+  priority. This sets the worst case scenario for the timing
+  precision. For non conflicting events the timing precision is
+  limited by the clock resolution of 500 ns.
+
++ The maximal average frequency of events is limited by the bandwidth
+  of the serial communication. The data is send encapsulated in
+  packets of 8 bytes fed to a 256 bytes buffer (32 events). The buffer
+  is emptied as fast as possible through the serial link. 1Mbps
+  communication have been found to be reliable for the tested boards
+  so that the theoretical maximum for the event frequency in a sliding
+  window of 32 events is about 15kevents/s. In practice overflowing
+  the buffer will results in crashing the microcode beyond recovery,
+  therefore a solid margin should be considered so that this cannot
+  occur.
+
++ Oscillating frequencies of the ceramic resonators (CSTCE16M0V53-R0)
+  clocking the Arduino Mega boards are only accurate at the ~10⁻³
+  level. The resulting inaccuracy in the clock scale does not matter
+  when the device is solely used to synchronize the different
+  lines. However comparison to external clocks are likely to be
+  affected by the error in the MCU clock calibration and temperature
+  shift. For applications requiring external references, the simplest
+  work-around is to add the external reference as an additional
+  line. It might be interesting to add functionalities to calibrate
+  the MCU clock so that timestamps can be accurately converted to
+  seconds for application where the time scale matters. Reaching
+  acceptable accuracy would however likely require additional hardware
+  to monitor the MCU temperature, or replacement of the ceramic
+  oscillator with a temp controlled Xtal oscillator (TCXO such as
+  DS3231). Nano boards ship with a quartz resonator from which better
+  accuracy might be expected.
