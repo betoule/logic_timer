@@ -40,10 +40,9 @@ class LogicTimer(bincoms.SerialBC):
         while True:
             data.append(self.async_packet_read())
             if(data[-1][-1] == 0xFF):
-                #data.pop()
                 break
         return data
-        #return np.rec.fromrecords(data, names=['time', 'pinstate'])
+
 
 def test():
     ''' Monitor the TTL lines for 100s and display intervals'''
@@ -72,8 +71,3 @@ def test():
     result = np.rec.fromrecords(d.get_data(), names=['time', 'pinstate'])
     print(f'Record saved to file {args.output_file}')
     np.save(args.output_file, result)
-    #import matplotlib.pyplot as plt
-    #toto = np.array(d.get_data())
-    #t = toto[toto[:,1] == 1, 0]
-    #plt.plot(t[1:] - t[:-1])
-    #plt.show()

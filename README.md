@@ -68,6 +68,7 @@ the two implemented boards in the following table:
 | 1 << 5 | INT2           | 19               |                |                  |
 
 The following picture display a 3 lines implementation using an Arduino Mega.
+![Lid open](doc/open.jpg)
 
 Assuming that the path to the serial device corresponding to the
 arduino is /dev/ttyACM0, the following command will trigger a 20 second
