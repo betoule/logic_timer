@@ -111,9 +111,12 @@ plt.savefig('doc/interval_accuracy.png')
   therefore be reported as separated by at least 5 μs and ordered by
   the interrupt priority. This sets the worst case scenario for the
   timing precision. For non conflicting events the timing precision is
-  limited by the clock resolution of 500 ns.  With some work to
-  rewrite the interrupt handling routine in assembler, the dead time
-  could probably be brought down to 2μs. If you think it could be
+  limited by the clock resolution of 500 ns.
+  
+* For the same reason, the second of two events occurring on the same
+  line at an interval smaller than 5μs will be ignored. With some work
+  to rewrite the interrupt handling routine in assembler, the dead
+  time could probably be brought down to 2μs. If you think it could be
   useful, feel free to submit an issue. For the record, the timestamps
   is currently attributed 2.1μs after the edge detection.
 

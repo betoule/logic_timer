@@ -179,6 +179,19 @@ ISR(INT0_vect){
 ISR(INT3_vect){
   INTERRUPT_HANDLER(0x04)
 }
+// Handle interrupt on arduino pin 21
+ISR(INT0_vect){
+  INTERRUPT_HANDLER(0b1000)
+}
+// Handle interrupt on arduino pin 20
+ISR(INT1_vect){
+  INTERRUPT_HANDLER(0b10000)
+}
+// Handle interrupt on arduino pin 19
+ISR(INT2_vect){
+  INTERRUPT_HANDLER(0b100000)
+}
+
 #endif
 // Update high bytes of the timer counter
 ISR(TIMER1_OVF_vect){
