@@ -107,11 +107,15 @@ plt.savefig('doc/interval_accuracy.png')
   not suited to record digital communications on a regular clock.
 
 + Handling of synchronous events. The interrupt handling routine takes
-  about TX μs to complete. Simultaneous events will therefore be
-  reported as separated by at least TX μs and ordered by the interrupt
-  priority. This sets the worst case scenario for the timing
-  precision. For non conflicting events the timing precision is
-  limited by the clock resolution of 500 ns.
+  about 5 μs to complete (82 instructions). Simultaneous events will
+  therefore be reported as separated by at least 5 μs and ordered by
+  the interrupt priority. This sets the worst case scenario for the
+  timing precision. For non conflicting events the timing precision is
+  limited by the clock resolution of 500 ns.  With some work to
+  rewrite the interrupt handling routine in assembler, the dead time
+  could probably be brought down to 2μs. If you think it could be
+  useful, feel free to submit an issue. For the record, the timestamps
+  is currently attributed 2.1μs after the edge detection.
 
 + The maximal average frequency of events is limited by the bandwidth
   of the serial communication. The data is send encapsulated in

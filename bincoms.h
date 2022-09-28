@@ -39,13 +39,14 @@ extern struct Data{
   unsigned int timeHB;
   uint8_t state;
 } data;
+extern uint16_t timeHB;
 extern uint16_t duration;
 void stop();
 
 template <class com>
 struct Com{
   com *client;
-  uint8_t write_buffer[BUFFSIZE];
+  uint8_t write_buffer[BUFFSIZE] __attribute__ ((aligned(BUFFSIZE)));
   uint8_t read_buffer[BUFFSIZE];
 
   uint8_t wb, we, rb, re;
@@ -79,7 +80,7 @@ struct Com{
 	else
 	  rcv_header();
       }
-      if ((duration > 0) && (data.timeHB > duration))
+      if ((duration > 0) && (timeHB > duration))
 	stop();
     }
   }
