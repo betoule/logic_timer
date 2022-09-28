@@ -34,11 +34,6 @@ extern uint8_t narg[];
 extern const char* command_names[];
 extern void (*func[])(uint8_t rb);
 extern const uint8_t NFUNC;
-extern struct Data{
-  unsigned int timeLB;
-  unsigned int timeHB;
-  uint8_t state;
-} data;
 extern uint16_t timeHB;
 extern uint16_t duration;
 void stop();

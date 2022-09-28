@@ -29,12 +29,58 @@
 #endif
 
 
+/* The assembly code in the MACRO below unrolls the writing of bytes
+ * in the communication buffer, taking advantage on the 256 bit
+ * alignment of the buffer to save time. It is roughly equivalent to:
+ * client.write_buffer[client.we++] = 'b';
+ * client.write_buffer[client.we++] = 0x00;
+ * client.write_buffer[client.we++] = 5;
+ * client.write_buffer[client.we++] = ((char*) &timeLB)[0];
+ * client.write_buffer[client.we++] = ((char*) &timeLB)[1];
+ * client.write_buffer[client.we++] = ((char*) &timeHB)[0];
+ * client.write_buffer[client.we++] = ((char*) &timeHB)[1];
+ * client.write_buffer[client.we++] = line;
+ */
+#define INTERRUPT_HANDLER(line)                                    \
+  uint16_t timeLB = TCNT1;					   \
+  if ((TIFR1 & 0b1) && (timeLB < 10)){				   \
+    timeHB++;							   \
+    TIFR1 |= _BV(TOV1);						   \
+  }								   \
+  volatile uint8_t * val_pointer = client.write_buffer + client.we;\
+  asm volatile("ldi r24, 0x62" "\n\t"				   \
+	       "st %a1, r24" "\n\t"				   \
+	       "ldi r24, 0x00" "\n\t"				   \
+	       "inc %A1" "\n\t"					   \
+	       "st %a1, r24" "\n\t"				   \
+	       "ldi r24, 0x05" "\n\t"				   \
+	       "inc %A1" "\n\t"					   \
+	       "st %a1, r24" "\n\t"				   \
+	       "inc %A1" "\n\t"					   \
+	       "st %a1, %A0" "\n\t"				   \
+	       "inc %A1" "\n\t"					   \
+	       "st %a1, %B0" "\n\t"				   \
+	       "inc %A1" "\n\t"					   \
+	       "st %a1, %A2" "\n\t"				   \
+	       "inc %A1" "\n\t"					   \
+	       "st %a1, %B2" "\n\t"				   \
+	       "ldi r24, %3" "\n\t"				   \
+	       "inc %A1" "\n\t"					   \
+	       "st %a1, r24" "\n\t"				   \
+	       : 						   \
+	       : "r" (timeLB),					   \
+		 "e" (val_pointer),				   \
+		 "r" (timeHB),					   \
+		 "I" (line)                                        \
+	       :"r24"						   \
+	       );						   \
+  client.we += 8;                                                  \
+
+
 void start(uint8_t rb);
 
 uint16_t duration;
 uint16_t timeHB;
-struct Data data;
-char * dataptr = (char *) &data;
 
 const uint8_t NFUNC = 2+1;
 uint8_t narg[NFUNC];
@@ -116,61 +162,7 @@ ISR(INT5_vect){
 #elif defined(ARDUINO_AVR_PRO)
 ISR(INT1_vect){  
 #endif
-  //PORTB = (PINB ^ 0b10000000);
-  PINB |= 0b10000000;
-  uint16_t timeLB = TCNT1;
-  if ((TIFR1 & 0b1) && (timeLB < 10)){
-    timeHB++;
-    TIFR1 |= _BV(TOV1);
-  }
-  
-  //data.timeLB = TCNT1;
-  //data.state = 0b10;
-  //if ((TIFR1 & 0b1) & (data.timeLB < 10)){
-  //  data.timeHB++;
-  //  // clear the interrupt as the case has been handled
-  //  TIFR1 |= _BV(TOV1); 
-  //}
-  //client.snd((uint8_t *) &data, sizeof(struct Data));
-  
-  volatile uint8_t * val_pointer = client.write_buffer + client.we;
-  asm volatile("ldi r24, 0x62" "\n\t"
-	       "st %a1, r24" "\n\t"
-	       "ldi r24, 0x00" "\n\t"
-	       "inc %A1" "\n\t"
-	       "st %a1, r24" "\n\t"
-	       "ldi r24, 0x05" "\n\t"
-	       "inc %A1" "\n\t"
-	       "st %a1, r24" "\n\t"
-	       "inc %A1" "\n\t"
-	       "st %a1, %A0" "\n\t"
-	       "inc %A1" "\n\t"
-	       "st %a1, %B0" "\n\t"
-	       "inc %A1" "\n\t"
-	       "st %a1, %A2" "\n\t"
-	       "inc %A1" "\n\t"
-	       "st %a1, %B2" "\n\t"
-	       "ldi r24, 0x02" "\n\t"
-	       "inc %A1" "\n\t"
-	       "st %a1, r24" "\n\t"
-	       : 
-	       : "r" (timeLB),
-		 "e" (val_pointer),
-		 "r" (timeHB)
-	       :"r24"
-	       );
-  client.we += 8;
-  //client.write_buffer[temp++] = 'b';
-  //client.write_buffer[temp++] = 0x00;
-  //client.write_buffer[temp++] = 5;
-  //client.write_buffer[temp++] = ((char*) &timeLB)[0];
-  //client.write_buffer[temp++] = ((char*) &timeLB)[1];
-  //client.write_buffer[temp++] = ((char*) &timeHB)[0];
-  //client.write_buffer[temp++] = ((char*) &timeHB)[1];
-  //client.write_buffer[temp++] = 0b10;
-  //client.we = temp;
-  PINB |= 0b10000000;
-  //sei();
+  INTERRUPT_HANDLER(0x02)
 }
 
 // Handle interrupt on arduino pin2
@@ -179,36 +171,17 @@ ISR(INT4_vect){
 #elif defined(ARDUINO_AVR_PRO)
 ISR(INT0_vect){
 #endif
-  data.timeLB = TCNT1;
-  data.state = 0b1;
-    if ((TIFR1 & 0b1) & (data.timeLB < 10)){
-    data.timeHB++;
-    // clear the interrupt as the case has been handled
-    TIFR1 |= _BV(TOV1); 
-  }
-  client.snd((uint8_t *) &data, sizeof(struct Data));
-  //PORTB = (PINB ^ 0b10000000);
-  //sei();
+  INTERRUPT_HANDLER(0x01)
 }
 
 #if defined(ARDUINO_AVR_MEGA2560)
 // Handle interrupt on arduino pin 18
 ISR(INT3_vect){
-  data.timeLB = TCNT1;
-  data.state = 0b100;
-    if ((TIFR1 & 0b1) & (data.timeLB < 10)){
-    data.timeHB++;
-    // clear the interrupt as the case has been handled
-    TIFR1 |= _BV(TOV1); 
-  }
-  client.snd((uint8_t *) &data, sizeof(struct Data));
-  //PORTB = (PINB ^ 0b10000000);
-  //sei();
+  INTERRUPT_HANDLER(0x04)
 }
 #endif
 // Update high bytes of the timer counter
 ISR(TIMER1_OVF_vect){
-  //data.timeHB++;
   timeHB++;
 }
 
@@ -223,7 +196,7 @@ void start(uint8_t rb){
   duration = secduration/0.032768; // time resolution 0.5e-6*2**16
   client.snd((uint8_t*) &duration, 2);
   // Reset the timer
-  data.timeHB=0;
+  timeHB=0;
   TCNT1=0;
   // Clear the interrupt vectors
   CLEARINT;
@@ -235,8 +208,15 @@ void stop(){
   // Disable interrupts
   DISABLEINT;
   // Send the end packet
-  data.state=0xFF;
-  client.snd((uint8_t *) &data, sizeof(struct Data));
+  uint16_t timeLB = TCNT1;
+  client.write_buffer[client.we++] = 'b';
+  client.write_buffer[client.we++] = 0x00;
+  client.write_buffer[client.we++] = 5;
+  client.write_buffer[client.we++] = ((char*) &timeLB)[0];
+  client.write_buffer[client.we++] = ((char*) &timeLB)[1];
+  client.write_buffer[client.we++] = ((char*) &timeHB)[0];
+  client.write_buffer[client.we++] = ((char*) &timeHB)[1];
+  client.write_buffer[client.we++] = 255;
   // Reset duration
   duration = 0;
 }
