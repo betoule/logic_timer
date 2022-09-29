@@ -68,20 +68,37 @@ the two implemented boards in the following table:
 | 4       | 1 << 4 | INT1           | 20               |                |                  |
 | 5       | 1 << 5 | INT2           | 19               |                |                  |
 
-The following picture display a 3 lines implementation using an Arduino Mega.
+The following picture display a 3 lines implementation using an
+Arduino Mega.
 ![Lid open](doc/open.jpg)
+
+STL files for the box are available in the 3D\_printed\_box
+directory. Custom enclosure can easily been obtained with the
+[ultimate box maker]( https://www.thingiverse.com/thing:1264391).
 
 Assuming that the path to the serial device corresponding to the
 arduino is /dev/ttyACM0, the following command will trigger a 20 second
 record of the rising edges of pin 2 and 3 and of the falling edge
 of pin 18 and store the result to timing.npy: 
+
 ```
 logic-timer -t /dev/ttyACM0 -d 20 -l 0r 1r 2f -o timing.npy
 ```
 
-The plot below displays the measured interval between successive
-pulses for a 1kHz square wave on line 1. The rms of the measurements
-is 0.16 μs and peak to peak deviation is 6 μs.
+The result is a numpy record array with one entry for each detected
+front and two columns *time* and *pinstate*. The timestamp in column
+*time* is a 32 bit integer counting since the start of the record with
+a resolution of 0.5μs. The 8 bit flag in column *pinstate* indicates
+which line triggered the record according to the correspondence table
+above. The record ends with a special entry whose *pinstate* value is
+255. The corresponding timestamp gives the exact duration of the
+monitoring.
+
+As an example, the code below analyses a 20s record with a 1kHz square
+wave in input 1. The plot displays the measured interval between
+successive pulses. The rms of the measurements is 0.16 μs and peak to
+peak deviation is 6 μs (see section Limitations for a discussion on
+the timing accuracy).
 
 ```python
 import numpy as np
