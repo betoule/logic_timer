@@ -76,7 +76,7 @@ arduino is /dev/ttyACM0, the following command will trigger a 20 second
 record of the rising edges of pin 2 and 3 and of the falling edge
 of pin 18 and store the result to timing.npy: 
 ```
-logic-timer -t /dev/ttyACM0 -d 20 -l 0,1,2 -e rrf -o timing.npy
+logic-timer -t /dev/ttyACM0 -d 20 -l 0r 1r 2f -o timing.npy
 ```
 
 The plot below displays the measured interval between successive
@@ -100,50 +100,53 @@ plt.savefig('doc/interval_accuracy.png')
 
 ## Limitations
 
-+ The code is intended to record events occurring at random times. As
-  such, it generates 5 bytes of data per detected pulses (4 bytes for
-  timing and 1 byte for line identification). It can only be used for
-  timing events occurring with moderate frequency in average. It is
-  not suited to record digital communications on a regular clock.
++ Use case: The code is intended to record events occurring at random
+  times. As such, it generates 5 bytes of data per detected pulses (4
+  bytes for timing and 1 byte for line identification). It can only be
+  used for timing events occurring with moderate frequency in
+  average. It is not suited to record digital communications on a
+  regular clock.
 
-+ Handling of synchronous events. The interrupt handling routine takes
++ Handling of synchronous events: The interrupt handling routine takes
   about 5 μs to complete (82 instructions). Simultaneous events will
   therefore be reported as separated by at least 5 μs and ordered by
   the interrupt priority. This sets the worst case scenario for the
   timing precision. For non conflicting events the timing precision is
   limited by the clock resolution of 500 ns.
   
-* For the same reason, the second of two events occurring on the same
-  line at an interval smaller than 5μs will be ignored. With some work
-  to rewrite the interrupt handling routine in assembler, the dead
-  time could probably be brought down to 2μs. If you think it could be
-  useful, feel free to submit an issue. For the record, the timestamps
-  is currently attributed 2.1μs after the edge detection.
+* Events in close succession: For the same reason, the second of two
+  events occurring on the same line at an interval smaller than 5μs
+  will be ignored. With some work to rewrite the interrupt handling
+  routine in assembler, the dead time could probably be brought down
+  to 2μs. If you think it could be useful, feel free to submit an
+  issue. For the record, the timestamps is currently attributed 2.1μs
+  after the edge detection.
 
-+ The maximal average frequency of events is limited by the bandwidth
-  of the serial communication. The data is send encapsulated in
-  packets of 8 bytes fed to a 256 bytes buffer (32 events). The buffer
-  is emptied as fast as possible through the serial link. 1Mbps
-  communication have been found to be reliable for the tested boards
-  so that the theoretical maximum for the event frequency in a sliding
-  window of 32 events is about 15kevents/s. In practice overflowing
-  the buffer will results in crashing the microcode beyond recovery,
-  therefore a solid margin should be considered so that this cannot
-  occur.
++ Average frequency: The maximal average frequency of events is
+  limited by the bandwidth of the serial communication. The data is
+  send encapsulated in packets of 8 bytes fed to a 256 bytes buffer
+  (32 events). The buffer is emptied as fast as possible through the
+  serial link. 1Mbps communication have been found to be reliable for
+  the tested boards so that the theoretical maximum for the event
+  frequency in a sliding window of 32 events is about 15kevents/s. In
+  practice overflowing the buffer will possibly result in crashing the
+  microcode beyond recovery, therefore a solid margin should be
+  considered so that this cannot occur.
 
-+ Oscillating frequencies of the ceramic resonators (CSTCE16M0V53-R0)
-  clocking the Arduino Mega boards are only accurate at the ~10⁻³
-  level. The resulting inaccuracy in the clock scale does not matter
-  when the device is solely used to synchronize the different
-  lines. However comparison to external clocks are likely to be
-  affected by the error in the MCU clock calibration and temperature
-  shift. For applications requiring external references, the simplest
-  work-around is to add the external reference as an additional
-  line. It might be interesting to add functionalities to calibrate
-  the MCU clock so that timestamps can be accurately converted to
-  seconds for application where the time scale matters. Reaching
-  acceptable accuracy would however likely require additional hardware
-  to monitor the MCU temperature, or replacement of the ceramic
-  oscillator with a temp controlled Xtal oscillator (TCXO such as
-  DS3231). Nano boards ship with a quartz resonator from which better
-  accuracy might be expected.
++ Time scale accuracy: Oscillating frequencies of the ceramic
+  resonators (CSTCE16M0V53-R0) clocking the Arduino Mega boards are
+  only accurate at the ~10⁻³ level. The resulting inaccuracy in the
+  clock scale does not matter when the device is solely used to
+  provide synchronization between the different lines. However
+  comparison to external clocks are likely to be affected by the error
+  in the MCU clock calibration and temperature shift. For applications
+  requiring external references, the simplest work-around is to add
+  the external reference as an additional line. It might be
+  interesting to add functionalities to calibrate the MCU clock so
+  that timestamps can be accurately converted to seconds for
+  application where the time scale matters. Reaching acceptable
+  accuracy would however likely require additional hardware to monitor
+  the MCU temperature, or replacement of the ceramic oscillator with a
+  temp controlled Xtal oscillator (TCXO such as DS3231). Nano boards
+  ship with a quartz resonator from which better accuracy might be
+  expected. Unfortunately the 326 only features 2 external interrupts.
