@@ -150,3 +150,11 @@ plt.savefig('doc/interval_accuracy.png')
   temp controlled Xtal oscillator (TCXO such as DS3231). Nano boards
   ship with a quartz resonator from which better accuracy might be
   expected. Unfortunately the 326 only features 2 external interrupts.
+
+# How to cite
+
+By releasing logic_timer as an open source tool we want to foster open
+science and enable everyone to use it in their research free of
+charge. If it proves useful and you would like to acknowledge the
+author in your publication, you can cite the DOI (see badge above). Do
+not hesitate to send an email for support and/or collaboration.
