@@ -45,16 +45,19 @@ class LogicTimer(bincoms.SerialBC):
 
 
 def test():
-    ''' Monitor the TTL lines for 100s and display intervals'''
+    ''' Monitor TTL lines and record timestamps for detected fronts'''
     import argparse
     parser = argparse.ArgumentParser(
-        description='Communicate with device implementing the generic bincoms protocol')
+        description='Timing of fronts dectected in TTL lines.')
     parser.add_argument(
         '-t', '--tty', default='/dev/ttyACM0',
         help='link to a specific tty port')
     parser.add_argument(
         '-d', '--duration', default=20, type=float,
         help='link to a specific tty port')
+    parser.add_argument(
+        '-l', '--enabled-lines', default=["0r", "1r", "2f"], nargs='*',
+        help='Identifiers of the lines to monitor. Each id should be a line number followed by r (to stamp the rising front) or f (to stamp the falling front).')
     parser.add_argument(
         '-v', '--verbose', action='store_true',
         help='Print communication debugging info')
@@ -66,8 +69,13 @@ def test():
 
     d = LogicTimer(dev=args.tty, baudrate=1000000, debug=args.verbose)
     d.set_duration(args.duration)
+    for l in args.enabled_lines:
+        if len(l) != 2:
+            raise ValueError(f"Line identifier {l} does not comply with expected format [0-6][fr]")
+        lid, front = int(l[0]), l[1].encode() 
+        d.enable_line(lid, front)
     import numpy as np
-    print(f'Recording lines 1r, 2r, 3f for {args.duration}s')
+    print(f'Recording lines {args.enabled_lines} for {args.duration}s')
     result = np.rec.fromrecords(d.get_data(), names=['time', 'pinstate'])
     print(f'Record saved to file {args.output_file}')
     np.save(args.output_file, result)

@@ -16,18 +16,19 @@
 #include "bincoms.h"
 
 
+#define ENABLEINT EIMSK |= enabled_lines
+#define DISABLEINT EIMSK &= ~enabled_lines
+#define CLEARINT EIFR |= enabled_lines
+
 #if defined(ARDUINO_AVR_MEGA2560)
-#define ENABLEINT EIMSK |= _BV(INT5) | _BV(INT4) | _BV(INT3)
-#define DISABLEINT EIMSK &= (~(_BV(INT5)) & (~_BV(INT4)) & (~_BV(INT3)))
-#define CLEARINT EIFR |= _BV(INTF5) | _BV(INTF4) | _BV(INTF3)
+#define NLINES 6
+const uint8_t line_correspondence[] = {4, 5, 3, 0, 1, 2};
 #elif defined(ARDUINO_AVR_PRO)
-#define ENABLEINT EIMSK |= _BV(INT1) | _BV(INT0)
-#define DISABLEINT EIMSK &= (~(_BV(INT1)) & (~_BV(INT0)))
-#define CLEARINT EIFR |= _BV(INTF1) | _BV(INTF0)
+#define NLINES 2
+const uint8_t line_correspondence[] = {0, 1};
 #else
   #error Unsupported board selection.
 #endif
-
 
 /* The assembly code in the MACRO below unrolls the writing of bytes
  * in the communication buffer, taking advantage on the 256 bit
@@ -78,11 +79,13 @@
 
 
 void start(uint8_t rb);
+void enable_line(uint8_t rb);
 
 uint16_t duration;
 uint16_t timeHB;
+uint8_t enabled_lines = 0;
 
-const uint8_t NFUNC = 2+1;
+const uint8_t NFUNC = 2+2;
 uint8_t narg[NFUNC];
 // The exposed functions
 void (*func[NFUNC])(uint8_t rb) =
@@ -91,6 +94,7 @@ void (*func[NFUNC])(uint8_t rb) =
    get_command_names,
    // user defined
    start,
+   enable_line,
   };
 
 const char* command_names[NFUNC*3] =
@@ -98,8 +102,32 @@ const char* command_names[NFUNC*3] =
    "get_command_names", "BB", "s",
    // user defined
    "start", "f", "H",
+   "enable_line", "Bc", "",
   };
 
+void enable_line(uint8_t rb){
+  if (client.read_buffer[rb] >= NLINES)
+    client.sndstatus(VALUE_ERROR);
+  else{
+    uint8_t sense_control_bit = 0;
+    uint8_t int_num = line_correspondence[client.read_buffer[rb]];
+    if (client.read_buffer[rb+1] == 'r')
+      sense_control_bit = 0b11;
+    else if (client.read_buffer[rb+1] == 'f')
+      sense_control_bit = 0b10;
+    else
+      client.sndstatus(VALUE_ERROR);
+    enabled_lines |= 1 << int_num;
+    if (int_num < 4){
+      EICRA = (EICRA & ~(0b11 << 2*int_num)) | (sense_control_bit << (2*int_num));
+    }
+    else{
+      int_num -= 4;
+      EICRB = (EICRB & ~(0b11 << 2*int_num)) | (sense_control_bit << (2*int_num)); 
+    }
+    client.sndstatus(STATUS_OK);
+  }
+}
 
 void setup(){
   setup_bincom();
