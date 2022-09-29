@@ -9,14 +9,14 @@ if __name__ == '__main__':
         '-i', '--input-file', default='timing_test.npy',
         help='Input filename')
     parser.add_argument(
-        '-l', '--lines', default=[1], nargs='+', type=int,
-        help='Lines to be displayed')
+        '-f', '--flags', default=[1], nargs='+', type=int,
+        help='Select lines to be displayed')
     
     args = parser.parse_args()
 
     record = np.load(args.input_file)
-    for l in args.lines:
-        t = record['time'][record['pinstate'] == l]
+    for l in args.flags:
+        t = record['time'][(record['pinstate'] & l)>0]
         t = t * 0.5e-6 # Convert timing in seconds
         plt.plot(t[1:] - t[:-1], 'o')
         plt.ylabel('Measured interval [s]')

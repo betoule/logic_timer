@@ -2,8 +2,8 @@
 
 The provided code monitors TTL lines and put a 32 bit timestamp (+ a
 one byte flag for identification of the lines) each time a rising
-front is detected. The 32 bit timing resolution, provides more than
-2000 seconds of monitoring with 0.5μs resolution.
+front is detected. The 32 bit timestamps, provides more than 2000
+seconds of monitoring with 0.5μs resolution.
 
 The code is written for atmega 2560 (monitoring up to 6 lines in
 parallel) and 326P (up to 2 lines) and has been tested on Arduino Mega
@@ -59,14 +59,14 @@ interrupt pins and ground pins on the Arduino board. The
 correspondence between line identifiers and board pins is given for
 the two implemented boards in the following table:
 
-| Flag   | Interrupt 2560 | Arduino Mega pin | Interrupt 326P | Arduino Nano pin |
-|--------|----------------|------------------|----------------|------------------|
-| 1 << 0 | INT4           | 2                | INT0           | D2               |
-| 1 << 1 | INT5           | 3                | INT1           | D3               |
-| 1 << 2 | INT3           | 18               |                |                  |
-| 1 << 3 | INT0           | 21               |                |                  |
-| 1 << 4 | INT1           | 20               |                |                  |
-| 1 << 5 | INT2           | 19               |                |                  |
+| Line Id | Flag   | Interrupt 2560 | Arduino Mega pin | Interrupt 326P | Arduino Nano pin |
+|---------|--------|----------------|------------------|----------------|------------------|
+| 0       | 1 << 0 | INT4           | 2                | INT0           | D2               |
+| 1       | 1 << 1 | INT5           | 3                | INT1           | D3               |
+| 2       | 1 << 2 | INT3           | 18               |                |                  |
+| 3       | 1 << 3 | INT0           | 21               |                |                  |
+| 4       | 1 << 4 | INT1           | 20               |                |                  |
+| 5       | 1 << 5 | INT2           | 19               |                |                  |
 
 The following picture display a 3 lines implementation using an Arduino Mega.
 ![Lid open](doc/open.jpg)
