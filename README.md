@@ -4,7 +4,7 @@ The provided code monitors TTL lines and put a 32 bit timestamp each
 time a front is detected on one of the lines. The 32 bit timestamps,
 provides more than 2000 seconds of monitoring with 0.5μs resolution,
 and is provided by the microcontroller internal clock. A one byte flag
-identifies the line corresponding to each event.
+identifies the TTL line corresponding to each event.
 
 The code is written for Atmega 2560 (monitoring up to 6 lines in
 parallel) and 326P (up to 2 lines) and has been tested on Arduino Mega
