@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "logic_timer"
-version = "0.1"
+version = "1.0.1"
 authors = [
   { name="Marc Betoule", email="marc.betoule@lpnhe.in2p3.fr" },
 ]
