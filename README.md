@@ -1,11 +1,12 @@
 # Arduino Mega Code to record precise TTL pulse timing for several lines in parallel over long duration
 
-The provided code monitors TTL lines and put a 32 bit timestamp (+ a
-one byte flag for identification of the lines) each time a rising
-front is detected. The 32 bit timestamps, provides more than 2000
-seconds of monitoring with 0.5μs resolution.
+The provided code monitors TTL lines and put a 32 bit timestamp each
+time a front is detected on one of the lines. The 32 bit timestamps,
+provides more than 2000 seconds of monitoring with 0.5μs resolution,
+and is provided by the microcontroller internal clock. A one byte flag
+identifies the line corresponding to each event.
 
-The code is written for atmega 2560 (monitoring up to 6 lines in
+The code is written for Atmega 2560 (monitoring up to 6 lines in
 parallel) and 326P (up to 2 lines) and has been tested on Arduino Mega
 2560 and Arduino Nano boards. The Arduino API being bypassed in
 several places to solve performance and timing issues, port to other
@@ -13,9 +14,10 @@ microcontrollers may require a bit of work.
 
 ## Installation
 
-The code comes in two parts: a firmware for the MCU and a python API
-handling the custom communication with the MCU. Both live in the same
-directory than can be retrieve from github with:
+The code comes in two parts: a firmware for the microcontroller unit
+(MCU) and a python API handling the custom communication with the
+MCU. Both live in the same repository than can be retrieve from github
+with:
 
 ```
 git clone https://github.com/betoule/logic_timer
@@ -68,13 +70,13 @@ the two implemented boards in the following table:
 | 4       | 1 << 4 | INT1           | 20               |                |                  |
 | 5       | 1 << 5 | INT2           | 19               |                |                  |
 
-The following picture display a 3 lines implementation using an
+The following picture displays a 3 lines implementation using an
 Arduino Mega.
 ![Lid open](doc/open.jpg)
 
 STL files for the box are available in the 3D\_printed\_box
 directory. Custom enclosure can easily been obtained with the
-[ultimate box maker]( https://www.thingiverse.com/thing:1264391).
+[ultimate box maker](https://www.thingiverse.com/thing:1264391).
 
 Assuming that the path to the serial device corresponding to the
 arduino is /dev/ttyACM0, the following command will trigger a 20 second
