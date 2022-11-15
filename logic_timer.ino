@@ -43,39 +43,19 @@ const uint8_t line_correspondence[] = {0, 1};
  * client.write_buffer[client.we++] = line;
  */
 #define INTERRUPT_HANDLER(line)                                    \
-  uint16_t timeLB = TCNT1;					   \
-  if ((TIFR1 & 0b1) && (timeLB < 10)){				   \
-    timeHB++;							   \
-    TIFR1 |= _BV(TOV1);						   \
-  }								   \
-  volatile uint8_t * val_pointer = client.write_buffer + client.we;\
-  asm volatile("ldi r24, 0x62" "\n\t"				   \
-	       "st %a1, r24" "\n\t"				   \
-	       "ldi r24, 0x00" "\n\t"				   \
-	       "inc %A1" "\n\t"					   \
-	       "st %a1, r24" "\n\t"				   \
-	       "ldi r24, 0x05" "\n\t"				   \
-	       "inc %A1" "\n\t"					   \
-	       "st %a1, r24" "\n\t"				   \
-	       "inc %A1" "\n\t"					   \
-	       "st %a1, %A0" "\n\t"				   \
-	       "inc %A1" "\n\t"					   \
-	       "st %a1, %B0" "\n\t"				   \
-	       "inc %A1" "\n\t"					   \
-	       "st %a1, %A2" "\n\t"				   \
-	       "inc %A1" "\n\t"					   \
-	       "st %a1, %B2" "\n\t"				   \
-	       "ldi r24, %3" "\n\t"				   \
-	       "inc %A1" "\n\t"					   \
-	       "st %a1, r24" "\n\t"				   \
-	       : 						   \
-	       : "r" (timeLB),					   \
-		 "e" (val_pointer),				   \
-		 "r" (timeHB),					   \
-		 "I" (line)                                        \
-	       :"r24"						   \
-	       );						   \
-  client.we += 8;                                                  \
+  struct Data{							   \
+    uint16_t timeLB;						   \
+    uint16_t timeHB;						   \
+    uint8_t state;						   \
+   } data;							   \
+   data.timeLB = TCNT1;						   \
+   if ((TIFR1 & 0b1) && (data.timeLB < 10)){			   \
+     timeHB++;							   \
+     TIFR1 |= _BV(TOV1);					   \
+   }								   \
+   data.timeHB = timeHB;					   \
+   data.state = line;						   \
+   client.snd((uint8_t *) &data, sizeof(struct Data));		   \
 
 
 void start(uint8_t rb);
