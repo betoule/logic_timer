@@ -48,10 +48,14 @@ def _command_factory(self, f, s, a):
             print(f'Encoding request with arguments {args} according to format {b"B"+s} as: {data}')
         r = self.snd(data)
         if a == b's':
+            if self.debug:
+                print(f'data: {r}')
             return r.decode()
         else:
             try:
                 answer = struct.unpack(a, r)
+                if self.debug:
+                    print(f'data: {answer}')
                 if len(answer) == 1:
                     return answer[0]
                 else:
@@ -103,6 +107,8 @@ class SerialBC(object):
         except:
             raise ValueError(f'Answer header: "{b}" does not match expected format "bcB"')
         a = int.from_bytes(a, byteorder='little', signed=False)
+        if self.debug:
+            print(f'header: {m.decode()},{status_codes[a]},{l}')  
         if (m == b'b' ) and (a == 0):
             data = self.com.read(l)
         elif (m == b'b') and (a < len(status_codes)):
