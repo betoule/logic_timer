@@ -67,7 +67,9 @@ def _command_factory(self, f, s, a):
 
 class SerialBC(object):
     def __init__(self, dev='/dev/ttyUSB0', baudrate=115200, debug=True):
-        self.com = serial.Serial(dev, baudrate=baudrate, timeout=3)
+        self._dev = dev
+        self.baudrate = baudrate
+        self._open()
         #self.com.set_low_latency_mode(True)
         self.debug=debug
         #time.sleep(5)
@@ -78,6 +80,14 @@ class SerialBC(object):
                 break
             except ValueError:
                 self.com.flush()
+
+    def _open(self, timeout=3, reset=False):
+        try:
+            self.com.close()
+        except:
+            pass
+        self.com = serial.Serial(self._dev, baudrate=self._baudrate, timeout=timeout, dsrdtr=None if not reset else True)
+        
     def _read(self, size):
         read = bytearray()
         #timeout = Timeout(self.com._timeout)
