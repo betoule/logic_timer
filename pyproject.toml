@@ -20,7 +20,7 @@ classifiers = [
 
 [tool.setuptools.packages.find]
 where = ["./"]
-include = ["*.py"]
+include = ["*"]
 exclude = []
 
 [project.urls]
