@@ -95,7 +95,7 @@ class SerialBC(object):
         attrs = termios.tcgetattr(f)
         attrs[2] = attrs[2] & ~termios.HUPCL
         termios.tcsetattr(f, termios.TCSAFLUSH, attrs)
-        f.close()
+        os.close(f)
         if self.debug:
             print('Port set')
         try:
