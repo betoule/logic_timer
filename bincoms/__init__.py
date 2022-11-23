@@ -66,10 +66,10 @@ def _command_factory(self, f, s, a):
     return types.MethodType(func, self)
 
 class SerialBC(object):
-    def __init__(self, dev='/dev/ttyUSB0', baudrate=115200, debug=True):
+    def __init__(self, dev='/dev/ttyUSB0', baudrate=115200, debug=True, reset=False):
         self._dev = dev
         self._baudrate = baudrate
-        self._open()
+        self._open(reset=reset)
         #self.com.set_low_latency_mode(True)
         self.debug=debug
         #time.sleep(5)

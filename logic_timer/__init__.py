@@ -63,12 +63,16 @@ def test():
         '-v', '--verbose', action='store_true',
         help='Print communication debugging info')
     parser.add_argument(
+        '-r', '--reset', action='store_true',
+        help='Hard reset the device at startup')
+
+    parser.add_argument(
         '-o', '--output-file', default='timing.npy',
         help='Filename for the record')
     
     args = parser.parse_args()
 
-    d = LogicTimer(dev=args.tty, baudrate=1000000, debug=args.verbose)
+    d = LogicTimer(dev=args.tty, baudrate=1000000, debug=args.verbose, reset=args.reset)
     d.set_duration(args.duration)
     for l in args.enabled_lines:
         if len(l) != 2:
