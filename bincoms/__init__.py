@@ -20,6 +20,8 @@ import types
 import os
 import select
 from serial.serialutil import Timeout
+import termios
+
 status_codes = ['STATUS_OK',
                 'STATUS_BUSY',
                 'STATUS_ERROR',
