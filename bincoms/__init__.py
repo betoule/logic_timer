@@ -89,7 +89,7 @@ class SerialBC(object):
         # Disable reset after hangup
         if self.debug:
             print('Port closed')
-        with open(self._dev) as f:
+        with open(self._dev, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK) as f:
             attrs = termios.tcgetattr(f)
             attrs[2] = attrs[2] & ~termios.HUPCL
             termios.tcsetattr(f, termios.TCSAFLUSH, attrs)
