@@ -86,7 +86,20 @@ class SerialBC(object):
             self.com.close()
         except:
             pass
-        self.com = serial.Serial(self._dev, baudrate=self._baudrate, timeout=timeout, dsrdtr=None if not reset else True)
+        # Disable reset after hangup
+        with open(self._dev) as f:
+            attrs = termios.tcgetattr(f)
+            attrs[2] = attrs[2] & ~termios.HUPCL
+            termios.tcsetattr(f, termios.TCSAFLUSH, attrs)
+        try:
+            self.com = serial.Serial(self._dev, baudrate=self._baudrate, timeout=timeout, dsrdtr=None)
+        except:
+            print('Connexion failed')
+        if reset:
+            self.com.setDTR(False) # Drop DTR
+            time.sleep(0.022)    # Read somewhere that 22ms is what the UI does.
+            self.com.setDTR(True)
+
         
     def _read(self, size):
         read = bytearray()
