@@ -172,6 +172,8 @@ plt.savefig('doc/interval_accuracy.png')
 
 # How to cite
 
+[![DOI](https://zenodo.org/badge/541720974.svg)](https://zenodo.org/doi/10.5281/zenodo.7130088)
+
 By releasing logic_timer as an open source tool we want to foster open
 science and enable everyone to use it in their research free of
 charge. If it proves useful and you would like to acknowledge the
