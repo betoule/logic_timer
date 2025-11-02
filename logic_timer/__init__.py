@@ -42,6 +42,13 @@ class LogicTimer(bincoms.SerialBC):
             if(data[-1][-1] == 0xFF):
                 break
         return data
+    
+    def enable_lines(self, line_list):
+        for l in line_list:
+            if len(l) != 2:
+                raise ValueError(f"Line identifier {l} does not comply with expected format [0-6][fr]")
+            lid, front = int(l[0]), l[1].encode() 
+            self.enable_line(lid, front)
 
 
 def test():
