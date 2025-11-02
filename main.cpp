@@ -12,9 +12,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <Arduino.h>
+//#include <Arduino.h>
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <avr/interrupt.h>
+//#include <cstdio>
 #include "bincoms.h"
 
+extern struct Com client;
 
 #define ENABLEINT EIMSK |= enabled_lines
 #define DISABLEINT EIMSK &= ~enabled_lines
@@ -115,6 +120,8 @@ void enable_line(uint8_t rb){
       sense_control_bit = 0b11;
     else if (client.read_buffer[rb+1] == 'f')
       sense_control_bit = 0b10;
+    else if (client.read_buffer[rb+1] == 'b')
+      sense_control_bit = 0b01;
     else
       client.sndstatus(VALUE_ERROR);
     enabled_lines |= 1 << int_num;
@@ -226,9 +233,6 @@ ISR(TIMER1_OVF_vect){
   timeHB++;
 }
 
-void loop(){
-  client.serve_serial();
-}
 
 void start(uint8_t rb){
   // We receive the duration as a floating point in seconds
@@ -262,3 +266,7 @@ void stop(){
   duration = 0;
 }
 
+int main(void) {
+  setup();
+  client.serve_serial();
+}

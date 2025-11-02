@@ -12,15 +12,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <Arduino.h>
+#include <avr/io.h>
+//#include <avr/interrupt.h>
 #include "bincoms.h"
 
 uint8_t buff[BUFFSIZE];
-#if defined(HAVE_HWSERIAL0)
-struct Com<HardwareSerial>  client(&Serial);
-#else
-extern struct Com<Serial_> client(&Serial);
-#endif
+struct Com client;
 
 
 void command_count(uint8_t rb){
@@ -39,12 +36,28 @@ void get_command_names(uint8_t rb){
     client.sndstr(command_names[nfunc * 3 + par]);
 }
 
-void setup_bincom(){
+void setup_bincom(long int baud){
   //Serial.begin(115200);
-  Serial.begin(1000000);
+  //Serial.begin(1000000);
+
+  // The baud setting computation in the arduino library does not
+  // match the equation given in Table 19.1 of the atmega328p
+  // datasheet. Sticking with the arduino formula as the code worked
+  // when compiled with the arduino ide.
+  uint16_t baud_setting = (F_CPU / 4 / baud - 1) / 2;
+  UCSR0A = 1 << U2X0;
+  /*Set baud rate */
+  UBRR0H = (unsigned char)(baud_setting>>8);
+  UBRR0L = (unsigned char)baud_setting;
+  /* Set frame format: 8data, 2stop bit */
+  UCSR0C = SERIAL_8N1 |  0x80;
+
+  /* Enable receiver and transmitter */
+  UCSR0B = (1<<RXEN0)|(1<<TXEN0);
+  
   for (uint8_t i =0; i < NFUNC; i++){
     narg[i] = 0;
-    for (char * c = command_names[i*3+1]; *c != 0; c++){
+    for (const char * c = command_names[i*3+1]; *c != 0; c++){
       switch (*c){
       case 'B':
       case 'b':

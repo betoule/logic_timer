@@ -1,11 +1,43 @@
-BOARD_TAG    = mega
-BOARD_SUB = atmega2560
-#BOARD_TAG    = pro
-#BOARD_SUB = 16MHzatmega328
-#ARDUINO_DIR = /home/dice/soft/arduino-1.8.16
-ARDUINO_DIR = /home/marc/soft/arduino-1.8.12
-#ARCHITECTURE=avr
-#CORE = arduino
-#VARIANT = eightanaloginputs
-#include /usr/share/arduino/Arduino.mk
-include ~/soft/Arduino-Makefile/Arduino.mk
+# === CONFIG ===
+#MCU       = atmega328p
+MCU       = atmega2560
+F_CPU     = 16000000
+PORT      = /dev/ttyACM0  # Linux/macOS: ls /dev/tty* | grep ACM
+# PORT    = COM3          # Windows
+BAUD      = 115200
+#PROGRAMMER = arduino      # or wiring, stk500v1
+PROGRAMMER = wiring      # or wiring, stk500v1
+
+# === TOOLS ===
+CC      = avr-g++
+OBJCOPY = avr-objcopy
+AVRDUDE = avrdude
+
+# === FILES ===
+TARGET  = main
+SOURCES = main.cpp bincoms.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
+
+# === FLAGS ===
+CFLAGS = -Os -g -mmcu=$(MCU) -DF_CPU=$(F_CPU)UL -Wall -DARDUINO_AVR_MEGA2560
+LDFLAGS = -mmcu=$(MCU)
+
+# === RULES ===
+all: $(TARGET).hex
+
+$(TARGET).elf: $(OBJECTS)
+	$(CC) $(LDFLAGS) -o $@ $^
+
+$(TARGET).hex: $(TARGET).elf
+	$(OBJCOPY) -O ihex -R .eeprom $< $@
+
+%.o: %.cpp
+	$(CC) $(CFLAGS) -c $< -o $@
+
+flash: $(TARGET).hex
+	$(AVRDUDE) -F -V -c$(PROGRAMMER) -p$(MCU) -P $(PORT) -b$(BAUD) -U flash:w:$<
+
+clean:
+	rm -f $(TARGET).elf $(TARGET).hex *.o
+
+.PHONY: all flash clean

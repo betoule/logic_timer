@@ -14,8 +14,7 @@
 
 #ifndef __BINARYCOMMANDS_H__
 #define __BINARYCOMMANDS_H__
-
-#define HAVE_HWSERIAL0
+#include <string.h>
 
 #define BUFFSIZE 256 // Do not change that allows to use roling of uint8_t
 #define STATUS_OK 0x00
@@ -26,8 +25,11 @@
 #define COMMUNICATION_ERROR 0X05
 #define CHECKSUM_ERROR 0x06
 #define VALUE_ERROR 0x07
-#define PING PORTD |= 0b100000
-#define PONG PORTD &= ~0b100000
+
+#define SERIAL_8N1 0x06 // The default serial port config 8bit + 1sto
+
+//#define PING PORTD |= 0b100000
+//#define PONG PORTD &= ~0b100000
 
 
 extern uint8_t narg[];
@@ -38,9 +40,8 @@ extern uint16_t timeHB;
 extern uint16_t duration;
 void stop();
 
-template <class com>
+
 struct Com{
-  com *client;
   uint8_t write_buffer[BUFFSIZE] __attribute__ ((aligned(BUFFSIZE)));
   uint8_t read_buffer[BUFFSIZE];
 
@@ -48,8 +49,7 @@ struct Com{
   uint8_t wait;
   bool message;
   
-  Com(com *c){
-    client = c;
+  Com(){
     wb = 0;
     we = 0;
     rb = 0;
@@ -137,16 +137,11 @@ struct Com{
   
 };
 
-#if defined(HAVE_HWSERIAL0)
-extern struct Com<HardwareSerial> client;
-#else
-extern struct Com<Serial_> client;
-#endif
 // Function definition
 void command_count(uint8_t rb);
 void get_command_names(uint8_t rb);
 
-void setup_bincom();
+void setup_bincom(long int baud=1000000);
 /* These global variables need to be defined to match the needs of the application
 */
 #endif

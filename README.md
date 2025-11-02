@@ -25,21 +25,12 @@ git clone https://github.com/betoule/logic_timer
 
 ### MCU code
 
+```
+sudo apt install gcc-avr avr-libc avrdude make
+```
 The MCU code can be compiled and uploaded using the usual Arduino
 IDE. Alternatively, we provide a makefile to compile and upload using
 the Arduino-Makefile tool:
-
-https://github.com/sudar/Arduino-Makefile
-
-+ Install the arduino IDE
-+ Install Arduino-Makefile
-+ Adjust the following lines in the Makefile to match your own
-  installation:
-
-```
-ARDUINO_DIR = /home/dice/soft/arduino-1.8.16
-include ~/soft/Arduino-Makefile/Arduino.mk
-```
 
 + Connect the board, compile and upload the firmware with:
 ```
