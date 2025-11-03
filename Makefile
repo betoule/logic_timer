@@ -35,7 +35,7 @@ $(TARGET).hex: $(TARGET).elf
 	$(CC) $(CFLAGS) -c $< -o $@
 
 flash: $(TARGET).hex
-	$(AVRDUDE) -F -V -c$(PROGRAMMER) -p$(MCU) -P $(PORT) -b$(BAUD) -U flash:w:$<
+	$(AVRDUDE) -F -D -V -c$(PROGRAMMER) -p$(MCU) -P $(PORT) -b$(BAUD) -U flash:w:$<
 
 clean:
 	rm -f $(TARGET).elf $(TARGET).hex *.o

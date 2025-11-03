@@ -183,12 +183,15 @@ void setup(){
   TCCR1B = 0b00000010;
   TIMSK1 = 0b00000001;
 
-  // We disable the awful clock of the arduino IDE
+  // Make sure other timer are disabled
   TCCR0B = 0b0;
   TIMSK0 = 0b0;
   TCCR2B = 0b0;
   TIMSK2 = 0b0;
   EIMSK = 0b0;
+
+  // Set global interrupt enable
+  sei();
 }
 
 // Handle interrupt on arduino Pin3
