@@ -1,4 +1,4 @@
-# Arduino Mega Code to record precise TTL pulse timing for several lines in parallel over long duration
+# Arduino Code to record precise TTL pulse timing for several lines in parallel over long duration
 
 The provided code monitors TTL lines and put a 32 bit timestamp each
 time a front is detected on one of the lines. The 32 bit timestamps,
@@ -25,16 +25,22 @@ git clone https://github.com/betoule/logic_timer
 
 ### MCU code
 
+The MCU code no longer requires the Arduino IDE. It can be compiled
+and flashed using the regular avr suite.
+
++ Install everything needed with:
 ```
 sudo apt install gcc-avr avr-libc avrdude make
 ```
-The MCU code can be compiled and uploaded using the usual Arduino
-IDE. Alternatively, we provide a makefile to compile and upload using
-the Arduino-Makefile tool:
+
++ Adjust the port and PORT, MCU, BAUD and PROGRAMMER entries in the
+Makefile according to your board. The two supported chips are the
+atmega328P and the mega2560 (default).
 
 + Connect the board, compile and upload the firmware with:
 ```
-make upload
+make
+make flash
 ```
 
 ### Python API

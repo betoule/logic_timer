@@ -36,8 +36,7 @@ class LogicTimer(bincoms.SerialBC):
     def get_data(self):
         data = []
         self.com._timeout = self.duration+1
-        #self.start(self.duration)
-        self.stop()
+        self.start(self.duration)
         while True:
             data.append(self.async_packet_read())
             if(data[-1][-1] == 0xFF):
