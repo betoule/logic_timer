@@ -18,12 +18,18 @@
 #include <avr/interrupt.h>
 //#include <cstdio>
 #include "bincoms.h"
+#include <avr/eeprom.h>
 
 extern struct Com client;
 
+// Macros to start and stop the 16-bit timer
+#define STOP_TIMER TCCR1B = 0b00000000
+#define START_TIMER TCCR1B = 0b00000010
+// External interupt lines
 #define ENABLEINT EIMSK |= enabled_lines
 #define DISABLEINT EIMSK &= ~enabled_lines
 #define CLEARINT EIFR |= enabled_lines
+#define CLEAR_TINT TIFR1 = _BV(OCF1A)
 
 #if defined(ARDUINO_AVR_MEGA2560)
 #define NLINES 6
@@ -85,6 +91,10 @@ const uint8_t line_correspondence[] = {0, 1};
 
 void start(uint8_t rb);
 void enable_line(uint8_t rb);
+void start_timer(uint8_t rb);
+void get_time(uint8_t rb);
+void get_clock_calibration(uint8_t rb);
+void set_clock_calibration(uint8_t rb);
 void read_adc(uint8_t rb);
 void read_signature_row(uint8_t rb);
 
@@ -92,7 +102,7 @@ uint16_t duration;
 uint16_t timeHB;
 uint8_t enabled_lines = 0;
 
-const uint8_t NFUNC = 2+4;
+const uint8_t NFUNC = 2+8;
 uint8_t narg[NFUNC];
 // The exposed functions
 void (*func[NFUNC])(uint8_t rb) =
@@ -102,6 +112,10 @@ void (*func[NFUNC])(uint8_t rb) =
    // user defined
    start,
    enable_line,
+   start_timer,
+   get_time,
+   get_clock_calibration,
+   set_clock_calibration,
    read_adc,
    read_signature_row,
   };
@@ -112,6 +126,10 @@ const char* command_names[NFUNC*3] =
    // user defined
    "start", "f", "H",
    "enable_line", "Bc", "",
+   "start_timer", "", "",
+   "get_time", "", "I",
+   "get_clock_calibration", "", "f",
+   "set_clock_calibration", "f", "",
    "read_adc", "B", "H",
    "read_signature_row", "H", "B",
   };
@@ -186,7 +204,8 @@ void setup(){
   // WGM: 0b0000 Normal
   // CS1: 0b000 STOP
   TCCR1A = 0b00000000;
-  TCCR1B = 0b00000010;
+  STOP_TIMER;
+  //TCCR1B = 0b00000010;
   TIMSK1 = 0b00000001;
 
   // Make sure other timer are disabled
@@ -242,6 +261,28 @@ ISR(TIMER1_OVF_vect){
   timeHB++;
 }
 
+void start_timer(uint8_t rb){
+  /* Start the timer execution without program
+    (Usually used for clock calibration purpose)
+   */
+  // Disable interrupts
+  DISABLEINT;
+  // Reset the timer
+  timeHB=0;
+  TCNT1=0;
+  CLEAR_TINT;
+  // Enable timer overflow but not the other instructions
+  TIMSK1 = 0b00000001;
+  START_TIMER;
+  client.sndstatus(STATUS_OK);
+}
+
+void get_time(uint8_t rb){
+  uint32_t timestamp = timeHB;
+  timestamp <<= 16;
+  timestamp += TCNT1;
+  client.snd((uint8_t*) &timestamp, 4, STATUS_OK);
+}
 
 void start(uint8_t rb){
   // We receive the duration as a floating point in seconds
@@ -250,6 +291,7 @@ void start(uint8_t rb){
   duration = secduration/0.032768; // time resolution 0.5e-6*2**16
   client.snd((uint8_t*) &duration, 2);
   // Reset the timer
+  START_TIMER;
   timeHB=0;
   TCNT1=0;
   // Clear the interrupt vectors
@@ -261,6 +303,7 @@ void start(uint8_t rb){
 void stop(){
   // Disable interrupts
   DISABLEINT;
+  STOP_TIMER;
   // Send the end packet
   uint16_t timeLB = TCNT1;
   client.write_buffer[client.we++] = 'b';
@@ -273,6 +316,20 @@ void stop(){
   client.write_buffer[client.we++] = 255;
   // Reset duration
   duration = 0;
+}
+
+void get_clock_calibration(uint8_t rb){
+  float calibration_constant = eeprom_read_float((float*)0);
+  //EEPROM.get(0, calibration_constant);
+  client.snd((uint8_t*) &calibration_constant, 4, STATUS_OK);
+}
+
+void set_clock_calibration(uint8_t rb){
+  float calibration_constant = 2e6;
+  client.readn(&rb, (uint8_t*) &calibration_constant, 4);
+  eeprom_write_float((float*)0, calibration_constant);
+  //EEPROM.put(0, calibration_constant);
+  client.sndstatus(STATUS_OK);
 }
 
 

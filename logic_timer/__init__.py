@@ -49,6 +49,19 @@ app = Typer(
     add_completion=True,  # Enable default typer completion
 )
 
+def list_methods(cls):
+    # Get all attributes of the class
+    all_attributes = dir(cls)
+    
+    # Filter out special Python methods, private methods, and non-callable attributes
+    public_methods = [
+        attr for attr in all_attributes 
+        if callable(getattr(cls, attr)) 
+        and not attr.startswith('__') 
+        and not attr.startswith('_')
+    ]    
+    return public_methods
+
 class LogicTimer(bincoms.SerialBC):
     def __init__(self, *args, **keys):
         super().__init__(*args, **keys)
@@ -56,9 +69,21 @@ class LogicTimer(bincoms.SerialBC):
         # Read mcu temperature sensor calibration constants
         self._ts_offset = self.read_signature_row(0x0002)
         self._ts_gain = self.read_signature_row(0x0003)
-
+        #
         self.duration = 1
-        
+        #
+        self.frequency = self.get_frequency()
+
+    def get_frequency(self):
+        ''' Return the mcu clock frequency. Nominal or calibrated if avaialable'''
+        freq = self.get_clock_calibration()
+        if np.isnan(freq):
+            import warnings
+            warnings.warn('The mcu clock is not calibrated. If you need precise timings consider running "smartiris calibrate".')
+            return 2e6
+        else:
+            return freq
+
     def async_packet_read(self):
         ans = self.rcv()
         answer = struct.unpack('<IB', ans)
@@ -91,7 +116,10 @@ class LogicTimer(bincoms.SerialBC):
             lid, front = int(l[0]), l[1].encode() 
             self.enable_line(lid, front)
 
-@app.command()
+
+
+        
+@app.command(help='Print the device identification and status')
 def status(
         tty: Annotated[str, Option('--tty', '-t', help='Specify a tty port for the device')] = '/dev/ttyACM0',
         verbose: Annotated[bool, Option('--verbose', '-v', help='Display communcation debuging messages')]=False,
@@ -99,10 +127,9 @@ def status(
     '''
     '''
     d = LogicTimer(dev=tty, baudrate=1000000, debug=verbose, reset=reset)
-    print(d.signature_row)
-    print(d.read_mcu_temperature())
+    print(f'Logic timer: {d.signature_row}, MCU temperature: {d.read_mcu_temperature()}, frequency calibration constant: {d.frequency}')
     
-@app.command()
+@app.command(help='Record events for a given duration')
 def record(
     duration: Annotated[float, Argument(help="Record duration in seconds")],
     tty: Annotated[str, Option('--tty', '-t', help='Specify a tty port for the device')] = '/dev/ttyACM0',
@@ -117,6 +144,38 @@ def record(
     result = np.rec.fromrecords(d.get_data(), names=['time', 'pinstate'])
     print(f'Record saved to file {output_file}')
     np.save(output_file, result)
+
+@app.command(help='Run the clock calibration routine for the given duration')
+def calibrate(duration_min: Annotated[float, Option('--duration', '-d', help='Duration of the procedure in minutes')]=1,
+              output_file: Annotated[str, Option('--output-file', '-o', help='Record the clock calibration data to the provided file')] = '',
+              tty: Annotated[str, Option('--tty', '-t', help='Specify a tty port for the device')] = '/dev/ttyACM0',
+              verbose: Annotated[bool, Option('--verbose', '-v', help='Display communcation debuging messages')]=False,
+              reset: Annotated[bool, Option('--reset', '-r', help='Reset the device')]=False,):
+    import logic_timer.clock_calibration
+    device = LogicTimer(dev=tty, baudrate=1000000, debug=verbose, reset=reset)
+    mcu_data, ntp_data = logic_timer.clock_calibration.acquire_clock_data(device, duration=duration_min*60)
+    slope, eslope = logic_timer.clock_calibration.clock_calibration_fit(mcu_data['start'], mcu_data['mcu'])
+    print(f'Measured a time scale difference of {(slope-1) * 100:.4f}% (±{eslope*100:.4f}%)')
+    if output_file:
+        logic_timer.clock_calibration.save(mcu_data, ntp_data, output_file)
+        print(f'Calibration data saved in {output_file}. Clock scale not adjusted')
+    else:
+        calibrated_frequency = device.frequency * slope
+        print(f'Adjusting frequency from {device.frequency * 1e-6:.6f} MHz to {calibrated_frequency * 1e-6:.6f} MHz')
+        device.set_clock_calibration(calibrated_frequency)
+        device.frequency = calibrated_frequency
+
+@app.command(help='Call a raw function of the device and print the returned value')
+def raw(action: Annotated[str, Argument(help="Record duration in seconds")],
+        tty: Annotated[str, Option('--tty', '-t', help='Specify a tty port for the device')] = '/dev/ttyACM0',
+        verbose: Annotated[bool, Option('--verbose', '-v', help='Display communcation debuging messages')]=False,
+        reset: Annotated[bool, Option('--reset', '-r', help='Reset the device')]=False):
+    d = LogicTimer(dev=tty, baudrate=1000000, debug=verbose, reset=reset)
+    if not hasattr(d, action):
+        print(f'Unknown command {action}')
+        print(f'known: {list_methods(d)}')
+    else:
+        print(getattr(d, action)())
 
 def main():
     """The main entry point for the Cosmologix command-line interface."""
