@@ -80,6 +80,13 @@ struct Com{
     }
   }
 
+  void readn(uint8_t * rb, uint8_t * data, uint8_t n){
+    for (uint8_t i=0; i < n; i++){
+      data[i] = read_buffer[*rb];
+      (*rb)++;
+    }
+  }
+
   void write(uint8_t octet){
     write_buffer[we++] = octet;
     //if (we == BUFFSIZE) we=0; // This is not necessary if BUFFSIZE == 256

@@ -85,12 +85,14 @@ const uint8_t line_correspondence[] = {0, 1};
 
 void start(uint8_t rb);
 void enable_line(uint8_t rb);
+void read_adc(uint8_t rb);
+void read_signature_row(uint8_t rb);
 
 uint16_t duration;
 uint16_t timeHB;
 uint8_t enabled_lines = 0;
 
-const uint8_t NFUNC = 2+2;
+const uint8_t NFUNC = 2+4;
 uint8_t narg[NFUNC];
 // The exposed functions
 void (*func[NFUNC])(uint8_t rb) =
@@ -100,6 +102,8 @@ void (*func[NFUNC])(uint8_t rb) =
    // user defined
    start,
    enable_line,
+   read_adc,
+   read_signature_row,
   };
 
 const char* command_names[NFUNC*3] =
@@ -108,6 +112,8 @@ const char* command_names[NFUNC*3] =
    // user defined
    "start", "f", "H",
    "enable_line", "Bc", "",
+   "read_adc", "B", "H",
+   "read_signature_row", "H", "B",
   };
 
 void enable_line(uint8_t rb){
@@ -269,6 +275,60 @@ void stop(){
   duration = 0;
 }
 
+
+void read_adc(uint8_t rb){
+  uint8_t channel = *((uint8_t *) (client.read_buffer + rb));
+  // ADCSRA reference:
+  // ADEN-ADSC-ADATE-ADIF-ADIE-ADPS2-ADPS1-ADPS0
+  
+  // Configure ADMUX: Internal 1.1V reference, right-adjusted result, select channel
+  ADMUX = _BV(REFS1) | _BV(REFS0) | (channel & 0x0F);
+
+  // Start first conversion
+  ADCSRA |= (1 << ADSC);
+
+  // Wait for conversion to complete
+  while(ADCSRA & _BV(ADSC));// ADSC is cleared when conversion finishes
+
+  // Read ADC result (read ADCL first, then ADCH)
+  uint16_t result = ADCL; // Read low byte first
+  result += (ADCH<<8); // Read high byte and combine
+  
+  client.snd((uint8_t *) &result, 2, STATUS_OK);
+}
+
+/** The mcu signature contains calibration constants for the MCU temperature sensor
+ */
+void read_signature_row(uint8_t rb) {
+    uint8_t result;
+    uint16_t address;
+    client.readn(&rb, (uint8_t*) &address, 2);
+    
+    // Disable interrupts to ensure atomic operation
+    cli();
+
+    // Wait for any ongoing SPM/EEPROM operations to complete
+    while (SPMCSR & (1 << SPMEN));
+
+    // Set SIGRD and SPMEN to enable signature row read
+    SPMCSR = (1 << SIGRD) | (1 << SPMEN);
+    
+    // Load the address into Z register (R31:R30) and read using LPM
+    asm volatile("lpm %1, Z" "\n\t"    // Read byte from program memory at Z into result
+		 : "=r" (result)        // Output: result
+		 : "z" (address)   // Input: address (shifted left by 1 for word addressing)
+		 );
+
+    // Clear SPMCSR
+    SPMCSR = 0;
+
+    // Re-enable interrupts
+    sei();
+
+    client.snd(&result, 1, STATUS_OK);
+}
+
+ 
 int main(void) {
   setup();
   client.serve_serial();

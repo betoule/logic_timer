@@ -16,10 +16,47 @@ import bincoms
 import struct
 import time
 import numpy as np
+from typer import Typer, Option, Argument
+from typing import List, Optional, Annotated
+
+adc_pin_maps = {'A0': 0,
+                'A1': 1,
+                'A2': 2,
+                'A3': 3,
+                'A4': 4,
+                'A5': 5,
+                'A6': 6,
+                'A7': 7,
+                'MCU_TEMP': 8, # internal MCU temp sensor
+                'VBG': 0b1110, # Internal voltage ref
+                'GND': 0b1111, # Ground
+                }
+
+signature_bytes_map = {('0x1E', '0x95', '0x0F'): 'Atmega328P',
+                       ('0x1E', '0x96', '0x08'): 'ATmega640',
+                       ('0x1E', '0x97', '0x03'): 'ATmega1280',
+                       ('0x1E', '0x97', '0x04'): 'ATmega1281',
+                       ('0x1E', '0x98', '0x01'): 'ATmega2560',
+                       ('0x1E', '0x98', '0x02'): 'ATmega2561',
+                       }
+
+
+# Main Typer app
+app = Typer(
+    name="logic-timer",
+    help="High-resolution, long-duration timing device.",
+    no_args_is_help=True,
+    add_completion=True,  # Enable default typer completion
+)
 
 class LogicTimer(bincoms.SerialBC):
     def __init__(self, *args, **keys):
         super().__init__(*args, **keys)
+        self.signature_row = [self.read_signature_row(b) for b in [0x0, 0x1, 0x2]]
+        # Read mcu temperature sensor calibration constants
+        self._ts_offset = self.read_signature_row(0x0002)
+        self._ts_gain = self.read_signature_row(0x0003)
+
         self.duration = 1
         
     def async_packet_read(self):
@@ -42,7 +79,11 @@ class LogicTimer(bincoms.SerialBC):
             if(data[-1][-1] == 0xFF):
                 break
         return data
-    
+
+    def read_mcu_temperature(self):
+        V_adc = self.read_adc(adc_pin_maps['MCU_TEMP'])
+        return (V_adc - 273 + 100 - self._ts_offset)*128/self._ts_gain + 25
+
     def enable_lines(self, line_list):
         for l in line_list:
             if len(l) != 2:
@@ -50,43 +91,74 @@ class LogicTimer(bincoms.SerialBC):
             lid, front = int(l[0]), l[1].encode() 
             self.enable_line(lid, front)
 
-
-def test():
-    ''' Monitor TTL lines and record timestamps for detected fronts'''
-    import argparse
-    parser = argparse.ArgumentParser(
-        description='Timing of fronts dectected in TTL lines.')
-    parser.add_argument(
-        '-t', '--tty', default='/dev/ttyACM0',
-        help='link to a specific tty port')
-    parser.add_argument(
-        '-d', '--duration', default=20, type=float,
-        help='link to a specific tty port')
-    parser.add_argument(
-        '-l', '--enabled-lines', default=["0r", "1r", "2f"], nargs='*',
-        help='Identifiers of the lines to monitor. Each id should be a line number followed by r (to stamp the rising front) or f (to stamp the falling front).')
-    parser.add_argument(
-        '-v', '--verbose', action='store_true',
-        help='Print communication debugging info')
-    parser.add_argument(
-        '-r', '--reset', action='store_true',
-        help='Hard reset the device at startup')
-
-    parser.add_argument(
-        '-o', '--output-file', default='timing.npy',
-        help='Filename for the record')
+@app.command()
+def status(
+        tty: Annotated[str, Option('--tty', '-t', help='Specify a tty port for the device')] = '/dev/ttyACM0',
+        verbose: Annotated[bool, Option('--verbose', '-v', help='Display communcation debuging messages')]=False,
+        reset: Annotated[bool, Option('--reset', '-r', help='Reset the device')]=False,):
+    '''
+    '''
+    d = LogicTimer(dev=tty, baudrate=1000000, debug=verbose, reset=reset)
+    print(d.signature_row)
+    print(d.read_mcu_temperature())
     
-    args = parser.parse_args()
-
-    d = LogicTimer(dev=args.tty, baudrate=1000000, debug=args.verbose, reset=args.reset)
-    d.set_duration(args.duration)
-    for l in args.enabled_lines:
-        if len(l) != 2:
-            raise ValueError(f"Line identifier {l} does not comply with expected format [0-6][fr]")
-        lid, front = int(l[0]), l[1].encode() 
-        d.enable_line(lid, front)
-    import numpy as np
-    print(f'Recording lines {args.enabled_lines} for {args.duration}s')
+@app.command()
+def record(
+    duration: Annotated[float, Argument(help="Record duration in seconds")],
+    tty: Annotated[str, Option('--tty', '-t', help='Specify a tty port for the device')] = '/dev/ttyACM0',
+    verbose: Annotated[bool, Option('--verbose', '-v', help='Display communcation debuging messages')]=False,
+    reset: Annotated[bool, Option('--reset', '-r', help='Reset the device')]=False,
+    lines: Annotated[List[str], Option('--lines', '-l', help='Specify the lines to monitor. Each line identifier should be a line number followed by r (to timestamp rising fronts), f (to timestamp falling fronts) or b (to timestamp both fronts).')]=['0b', '1b'],
+    output_file: Annotated[str, Option('--tty', '-t', help='File name for the record')] = 'timing.npy',):
+    d = LogicTimer(dev=tty, baudrate=1000000, debug=verbose, reset=reset)
+    d.set_duration(duration)
+    d.enable_lines(lines)
+    print(f'Recording lines {lines} for {duration}s')
     result = np.rec.fromrecords(d.get_data(), names=['time', 'pinstate'])
-    print(f'Record saved to file {args.output_file}')
-    np.save(args.output_file, result)
+    print(f'Record saved to file {output_file}')
+    np.save(output_file, result)
+
+def main():
+    """The main entry point for the Cosmologix command-line interface."""
+    app()
+
+
+#def test():
+#    ''' Monitor TTL lines and record timestamps for detected fronts'''
+#    import argparse
+#    parser = argparse.ArgumentParser(
+#        description='Timing of fronts dectected in TTL lines.')
+#    parser.add_argument(
+#        '-t', '--tty', default='/dev/ttyACM0',
+#        help='link to a specific tty port')
+#    parser.add_argument(
+#        '-d', '--duration', default=20, type=float,
+#        help='link to a specific tty port')
+#    parser.add_argument(
+#        '-l', '--enabled-lines', default=["0r", "1r", "2f"], nargs='*',
+#        help='Identifiers of the lines to monitor. Each id should be a line number followed by r (to stamp the rising front) or f (to stamp the falling front).')
+#    parser.add_argument(
+#        '-v', '--verbose', action='store_true',
+#        help='Print communication debugging info')
+#    parser.add_argument(
+#        '-r', '--reset', action='store_true',
+#        help='Hard reset the device at startup')
+#    parser.add_argument(
+#        '-o', '--output-file', default='timing.npy',
+#        help='Filename for the record')
+#    
+#    args = parser.parse_args()
+#
+#    d = LogicTimer(dev=args.tty, baudrate=1000000, debug=args.verbose, reset=args.reset)
+#    d.set_duration(args.duration)
+#    for l in args.enabled_lines:
+#        if len(l) != 2:
+#            raise ValueError(f"Line identifier {l} does not comply with expected format [0-6][fr]")
+#        lid, front = int(l[0]), l[1].encode() 
+#        d.enable_line(lid, front)
+#    import numpy as np
+#    print(f'Recording lines {args.enabled_lines} for {args.duration}s')
+#    result = np.rec.fromrecords(d.get_data(), names=['time', 'pinstate'])
+#    print(f'Record saved to file {args.output_file}')
+#    np.save(args.output_file, result)
+

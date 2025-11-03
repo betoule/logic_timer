@@ -11,7 +11,7 @@ authors = [
 description = ""
 readme = "README.md"
 requires-python = ">=3.7"
-dependencies = ["numpy", "pyserial", "matplotlib"]
+dependencies = ["numpy", "pyserial", "matplotlib", "typer"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GPLV2",
@@ -28,4 +28,4 @@ exclude = []
 "Bug Tracker" = "https://github.com/betoule/logic_timer/issues"
 
 [project.scripts]
-logic-timer = "logic_timer:test"
+logic-timer = "logic_timer:main"
