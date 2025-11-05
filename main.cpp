@@ -91,6 +91,7 @@ const uint8_t line_correspondence[] = {0, 1};
 
 void start(uint8_t rb);
 void enable_line(uint8_t rb);
+void get_enabled_lines(uint8_t rb);
 void start_timer(uint8_t rb);
 void get_time(uint8_t rb);
 void get_clock_calibration(uint8_t rb);
@@ -102,7 +103,7 @@ uint16_t duration;
 uint16_t timeHB;
 uint8_t enabled_lines = 0;
 
-const uint8_t NFUNC = 2+8;
+const uint8_t NFUNC = 2+9;
 uint8_t narg[NFUNC];
 // The exposed functions
 void (*func[NFUNC])(uint8_t rb) =
@@ -112,6 +113,7 @@ void (*func[NFUNC])(uint8_t rb) =
    // user defined
    start,
    enable_line,
+   get_enabled_lines,
    start_timer,
    get_time,
    get_clock_calibration,
@@ -126,6 +128,7 @@ const char* command_names[NFUNC*3] =
    // user defined
    "start", "f", "H",
    "enable_line", "Bc", "",
+   "get_enabled_lines", "", "B",
    "start_timer", "", "",
    "get_time", "", "I",
    "get_clock_calibration", "", "f",
@@ -172,9 +175,11 @@ void setup(){
   DDRD   = 0b00000000;
   PORTD  = 0b11111111;
   DDRE   = 0b0;
-  PORTE  = 0b11111111;
-  PCMSK0 = 0b00000000;  
+  //PORTE  = 0b11111111;
+  PORTE  = 0b0;
+  PCMSK0 = 0b00000000;
   // Setup external interrupt rise for arduino pin 2 and 3 (PE4 and PE5)
+  //PCICR |= _BV(PCIE0);
   EICRB |= _BV(ISC51) | _BV(ISC50) | _BV(ISC41) | _BV(ISC40);
   // Setup external interrupt falling for arduino pin 18 (PD3)
   EICRA |= _BV(ISC31);
@@ -282,6 +287,10 @@ void get_time(uint8_t rb){
   timestamp <<= 16;
   timestamp += TCNT1;
   client.snd((uint8_t*) &timestamp, 4, STATUS_OK);
+}
+
+void get_enabled_lines(uint8_t rb){
+  client.snd((uint8_t*) &enabled_lines, 1, STATUS_OK);
 }
 
 void start(uint8_t rb){

@@ -116,8 +116,6 @@ class LogicTimer(bincoms.SerialBC):
             lid, front = int(l[0]), l[1].encode() 
             self.enable_line(lid, front)
 
-
-
         
 @app.command(help='Print the device identification and status')
 def status(
@@ -141,10 +139,40 @@ def record(
     d.set_duration(duration)
     d.enable_lines(lines)
     print(f'Recording lines {lines} for {duration}s')
-    result = np.rec.fromrecords(d.get_data(), names=['time', 'pinstate'])
+    data = d.get_data()
+    data = [(r[0], r[0]/d.frequency, r[1]) for r in data]
+    result = np.rec.fromrecords(data, names=['count', 'time', 'pinstate'])
     print(f'Record saved to file {output_file}')
     np.save(output_file, result)
 
+@app.command(help='Plot the content of a record')
+def display(filename: Annotated[str, Argument(help="Record duration in seconds")]):
+    import matplotlib.pyplot as plt
+    data = np.load(filename)
+    pins = set(data['pinstate'])
+    pins.remove(255)
+    fig0 = plt.figure('records')
+    ax = fig0.subplots(1, 1)
+    fig = plt.figure('intervals')
+    axes = fig.subplots(len(pins), 1, squeeze=False)
+    
+    def diff(x):
+        return x[1:]-x[:-1]
+    
+    for i, pin in enumerate(pins):
+        goods = data['pinstate'] == pin
+        ax.plot(data['time'][goods], '.', label=pin)
+        intervals = diff(data['time'][goods])
+        emean = np.mean(intervals)
+        rms = intervals.std()
+        axes[i][0].plot(intervals, '.', label=pin)
+        axes[i][0].axhline(emean, color='k', lw=0.5, label=f'{emean:.4e}s')
+        axes[i][0].axhspan(emean-rms, emean+rms, color='k', label=f'±{rms:.3e}s', alpha=0.1)
+
+        axes[i][0].legend()
+    ax.legend()
+    plt.show()
+    
 @app.command(help='Run the clock calibration routine for the given duration')
 def calibrate(duration_min: Annotated[float, Option('--duration', '-d', help='Duration of the procedure in minutes')]=1,
               output_file: Annotated[str, Option('--output-file', '-o', help='Record the clock calibration data to the provided file')] = '',
