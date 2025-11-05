@@ -205,6 +205,22 @@ def raw(action: Annotated[str, Argument(help="Record duration in seconds")],
     else:
         print(getattr(d, action)())
 
+@app.command(help='Start an xmlrpc server to expose the device functionalities')
+def start_server(
+        hostname: Annotated[str, Option('--hostname', '-H', help='Specify the address to listen')] = '0.0.0.0',
+        port: Annotated[int, Option('--port', '-p', help='Specify a port for the server')] = 7912,
+        tty: Annotated[str, Option('--tty', '-t', help='Specify a tty port for the device')] = '/dev/ttyACM0',
+        verbose: Annotated[bool, Option('--verbose', '-v', help='Display communcation debuging messages (inhibit daemonisation)')]=False,
+        reset: Annotated[bool, Option('--reset', '-r', help='Reset the device')]=False):
+    d = LogicTimer(dev=tty, baudrate=1000000, debug=verbose, reset=reset)
+    import logic_timer.daemon_servers
+    server = daemon_servers.BasicServer((hostname, port), 'logic-timer', d)
+    print(f"Listening on http://{hostname}:{port}")
+    if not verbose:
+        daemon_servers.daemonize(server)
+    else:
+        server.main()
+        
 def main():
     """The main entry point for the Cosmologix command-line interface."""
     app()

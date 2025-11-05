@@ -175,8 +175,8 @@ void setup(){
   DDRD   = 0b00000000;
   PORTD  = 0b11111111;
   DDRE   = 0b0;
-  //PORTE  = 0b11111111;
-  PORTE  = 0b0;
+  PORTE  = 0b11111111;
+  //PORTE  = 0b0;
   PCMSK0 = 0b00000000;
   // Setup external interrupt rise for arduino pin 2 and 3 (PE4 and PE5)
   //PCICR |= _BV(PCIE0);
