@@ -134,7 +134,7 @@ def record(
     verbose: Annotated[bool, Option('--verbose', '-v', help='Display communcation debuging messages')]=False,
     reset: Annotated[bool, Option('--reset', '-r', help='Reset the device')]=False,
     lines: Annotated[List[str], Option('--lines', '-l', help='Specify the lines to monitor. Each line identifier should be a line number followed by r (to timestamp rising fronts), f (to timestamp falling fronts) or b (to timestamp both fronts).')]=['0b', '1b'],
-    output_file: Annotated[str, Option('--tty', '-t', help='File name for the record')] = 'timing.npy',):
+    output_file: Annotated[str, Option('--output-file', '-o', help='File name for the record')] = 'timing.npy',):
     d = LogicTimer(dev=tty, baudrate=1000000, debug=verbose, reset=reset)
     d.set_duration(duration)
     d.enable_lines(lines)
